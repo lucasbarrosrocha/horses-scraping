@@ -1,136 +1,64 @@
 const request = require('postman-request');
-const atm = require('atmosphere.js');
-const _ = require('lodash');
 
-const url = "https://www.bumbet.com/services/sports/event/events/under/A/next?status=O&status=H&status=U&status=C&maxHours=24&liveOnly=true";
+const URL_DAY = 'https://www.sportinglife.com/api/horse-racing/racing/racecards/2019-11-13';
+const URL_RACE = 'https://www.sportinglife.com/api/horse-racing/race/';
 
-function bumbet() {
-    const socket = atm;
-    const req = new atm.AtmosphereRequest();
-    req.url = url;
-    
-    req.onClose = function (data) {
-        console.log('close');
-    };
+let bodyCorridas = []
+let idCorridas = []
 
-    req.onOpen = function (data) {
-        console.log(data);
-    };
-
-    let mensagemAnterior = {};
-
-    req.onMessage = function (message) {
-        // console.log('message', Object.keys(message));
-        const itens = JSON.parse(message.responseBody).items;
-        // console.log(itens.items);
-
-        // console.log('q', itens.length);
-        console.log('ao vivo bumbet', itens.filter(item => _.some(item.flags, flag => flag.name === 'LIVE' && flag.value)).length);
-
-        const futebol = itens.filter(
-            item => item.sport === 'SOCC' && _.some(item.flags, flag => flag.name === 'LIVE' && flag.value)
-        );
-
-        console.log('futebol', futebol.length);
-
-        console.log(JSON.stringify(mensagemAnterior) === JSON.stringify(message));
-        mensagemAnterior = message;
-    };
-
-    return socket.subscribe(req);
+async function get(url) {
+    await request('https://www.sportinglife.com/api/horse-racing/racing/racecards/2019-11-13', function (error, response, body) {
+        console.log('error:', error); // Print the error if one occurred
+        console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
+        // console.log('body:', body); // Print the HTML for the Google homepage.
+        bodyCorridas = JSON.parse(body);
+        select()
+    });
 }
 
-const body = {
-    "search": {
-        "type": "EVENT_TYPE",
-        "ids": [1]
-    },
-    "filters": {
-        "selectBy": "TIME",
-        "timeFrame": "ALL",
-        "marketType": "MATCH_ODDS"
-    },
-    "limits": {
-        "maxEventsPerEventType": 100
-    }
-};
-
-const headers = {
-    "X-Application": "nzIFcwyWhrlwYMrh"
-};
-
-const URI_AO_VIVO = "https://strands.betfair.com/api/eds/coupon/v1";
-
-function betfair() {
-
-    const request = require('postman-request');
-
-    const socket = atm;
-    const req = new atm.AtmosphereRequest();
-    req.url = URI_AO_VIVO;
-    req.method = 'POST';
-    req.headers = headers;
-    req.contentType = 'application/json';
-    req.data = JSON.stringify(body);
-    
-    req.onClose = function (data) {
-        console.log('close', data);
-    };
-
-    req.onError = function (err) {
-        console.log('err');
-    };
-
-    req.onReconnect = function (data) {
-        console.log('reconnect');
-    };
-
-    req.onOpen = function (data) {
-        console.log('open', data);
-    };
-
-    let mensagemAnterior = {};
-
-    req.onMessage = function (message) {
-        // console.log('message', Object.keys(message));
-        const itens = JSON.parse(message.responseBody).items;
-        // console.log(itens.items);
-
-        const futebol = itens.filter(
-            item => item.sport === 'SOCC' && _.some(item.flags, flag => flag.name === 'LIVE' && flag.value)
-        );
-
-        console.log('futebol', futebol.length);
-
-        console.log(JSON.stringify(mensagemAnterior) === JSON.stringify(message));
-        mensagemAnterior = message;
-    };
-
-    function teste() {
-        request({
-            uri: URI_AO_VIVO,
-            body,
-            headers,
-            json: true,
-            method: 'POST',
-            callback: function(err, res) {
-                const competicoes = _.first(res.body).competitions;
-
-                const jogosAoVivo = [];
-                competicoes.forEach(competicao => {
-                    jogosAoVivo.push(...competicao.events.filter(jogo => jogo.inplay));
-                });
-                console.log('yey', jogosAoVivo.length);
-                setTimeout(teste, 1000);
-            }
-        });
+function select() {
+    for (var i = 0; i < bodyCorridas.length; i++) {
+        // console.log(`----------------->`, bodyCorridas[i].races);
+        filtraIds(bodyCorridas[i].races)
     }
 
-    teste();
-    // return socket.subscribe(req);
+    idCorridas.forEach(id => {
+        getDetails(id);
+    });
+
+}
+
+function filtraIds(lista) {
+    const ids = lista.map(e => e.race_summary_reference.id);
+    idCorridas = [...idCorridas, ...ids];
+}
+
+async function getDetails(idRace) {
+    await request(URL_RACE + idRace, function (error, response, body) {
+        console.log('error:', error); // Print the error if one occurred
+        console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
+        console.log('body:', JSON.parse(body).race_summary.name); // Print the HTML for the Google homepage.
+        //nameCorrida.push(JSON.parse(body).race_summary.name);
+    });
+}
+
+function parseDate(amountDays) {
+    var day = new Date();
+    for (let i = 0; i < amountDays; i++){
+        day.setDate(day.getDate() -1);
+        console.log(day);
+    }
+}
+
+async function soteste(){
+
+    const response = await request.get(URL_DAY).then(e => {
+        console.log(e);
+    });
 }
 
 (() => {
-    bumbet();
-    betfair();
+    // get();
+    // parseDate(3000);
+    soteste();
 })();
