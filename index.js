@@ -1,3 +1,5 @@
+const routes = require('./middleware/routes');
+
 const request = require('postman-request');
 
 const URL_DAY = 'https://www.sportinglife.com/api/horse-racing/racing/racecards/2019-11-13';
@@ -55,10 +57,21 @@ async function soteste(){
     const response = await request.get(URL_DAY).then(e => {
         console.log(e);
     });
+    
+}
+
+testando = () => {
+    routes.getRacesToDay().then( response => {
+        console.log(response);
+    }).catch(err => {
+        console.log(err);
+    });
+
 }
 
 (() => {
     // get();
     // parseDate(3000);
-    soteste();
+    // soteste();
+    testando()
 })();
