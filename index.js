@@ -1,4 +1,4 @@
-const routes = require('./middleware/routes');
+import * as routes from './middleware/routes';
 
 const request = require('postman-request');
 
